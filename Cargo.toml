@@ -1,0 +1,18 @@
+[package]
+name = "todo"
+version = "0.1.0"
+description = "A simple command line utility to manage a simple To-Do tasks."
+authors = ["BennyPLS"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.72"
+clap = { version = "4.3.19", features = ["derive"] }
+colored = "2.0.4"
+dirs = "5.0.1"
+exitcode = "1.1.2"
+indoc = "2.0.3"
+serde = { version = "1.0.183", features = ["derive"] }
+serde_any = "0.5.0"
