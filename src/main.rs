@@ -1,19 +1,11 @@
-#![deny(missing_docs)]
-//!
-//!
-//!
-//!
-//!
+mod conversion;
 
-use std::path::PathBuf;
-use std::{io, process};
-
-use clap::{Parser, Subcommand, ValueEnum};
+use crate::conversion::{convert_commands, ConvertCommand};
+use clap::{Parser, Subcommand};
 use colored::Colorize;
-use serde_any::Format::{Json, Toml, Xml, Yaml};
-use todo::storage::{export_file, import_file};
-use todo::tasks::Tasks;
-use todo::{config, tasks};
+use std::path::PathBuf;
+use todo::libs::tasks::Tasks;
+use todo::libs::{config, tasks};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -48,7 +40,7 @@ pub enum Commands {
     },
 
     /// Remove all tasks
-    Clean {},
+    Clean,
 
     /// Toggles the state of completed for a task
     Toggle {
@@ -60,9 +52,11 @@ pub enum Commands {
     /// Configure configuration with CLI
     Config(ConfigCommands),
 
-    #[command(subcommand)]
     /// Export Tasks as another formats
-    Convert(ConvertCommands),
+    Convert {
+        #[command(flatten)]
+        args: ConvertCommand,
+    },
 }
 
 #[derive(Subcommand)]
@@ -72,91 +66,6 @@ pub enum ConfigCommands {
         /// The path to the data
         path: Option<PathBuf>,
     },
-}
-
-#[derive(Clone, ValueEnum)]
-pub enum ConvertAction {
-    Import,
-    Export,
-}
-
-#[derive(Subcommand)]
-pub enum ConvertCommands {
-    /// Convert from TOML to JSON
-    JSON {
-        /// The action to do
-        action: ConvertAction,
-
-        /// The path to the data
-        path: PathBuf,
-    },
-
-    /// Convert from TOML to YAML
-    YAML {
-        /// The action to do
-        action: ConvertAction,
-
-        /// The path to the data
-        path: PathBuf,
-    },
-
-    /// Convert from TOML to XML
-    XML {
-        /// The action to do
-        action: ConvertAction,
-
-        /// The path to the data
-        path: PathBuf,
-    },
-
-    /// Convert from TOML to TOML
-    TOML {
-        /// The action to do
-        action: ConvertAction,
-
-        /// The path to the data
-        path: PathBuf,
-    },
-}
-
-macro_rules! load_and_export {
-    ($config_path: expr, $target_path: expr, $format: ident) => {
-        let tasks = tasks::io::load(&$config_path);
-
-        if let Err(_) = export_file(&tasks, $format, &$target_path) {
-            eprintln!("{} : Could not export to specified file.", "ERROR".red());
-            process::exit(exitcode::IOERR);
-        }
-    };
-}
-
-macro_rules! import_and_load {
-    ($config_path: expr, $target_path: expr, $format: ident) => {
-        let result: io::Result<Tasks> = import_file(&$target_path, $format);
-
-        match result {
-            Ok(tasks) => {
-                tasks::io::save(&tasks, &$config_path);
-            }
-            Err(_) => {
-                eprintln!("{} : Could not import to specified file.", "ERROR".red());
-                process::exit(exitcode::IOERR);
-            }
-        }
-    };
-}
-
-macro_rules! convert {
-    ($action: ident, $config_path: expr, $target_path: expr, $format: ident) => {
-        match $action {
-            ConvertAction::Import => {
-                import_and_load!($config_path, $target_path, $format);
-            }
-            ConvertAction::Export => {
-                load_and_export!($config_path, $target_path, $format);
-            }
-        }
-    };
 }
 
 fn config_commands(command: ConfigCommands) {
@@ -172,26 +81,6 @@ fn config_commands(command: ConfigCommands) {
     config::io::save(&config)
 }
 
-fn convert_commands(command: ConvertCommands) {
-    let config = config::io::load();
-
-    match command {
-        ConvertCommands::TOML { path, action } => {
-            convert!(action, config.get_data_path(), path, Toml)
-        }
-        ConvertCommands::JSON { path, action } => {
-            convert!(action, config.get_data_path(), path, Json)
-        }
-        ConvertCommands::YAML { path, action } => {
-            convert!(action, config.get_data_path(), path, Yaml)
-        }
-        ConvertCommands::XML { path, action } => {
-            convert!(action, config.get_data_path(), path, Xml)
-        }
-    };
-
-    config::io::save(&config)
-}
 fn tasks_commands(commands: Commands) {
     let config = config::io::load();
     let mut tasks = tasks::io::load(&config.get_data_path());
@@ -230,14 +119,14 @@ fn tasks_commands(commands: Commands) {
 pub fn main() {
     let cli = Cli::parse();
 
+    print!("{} ", "TODO".green());
+
     match cli.command {
         Commands::Config(command) => {
             config_commands(command);
         }
 
-        Commands::Convert(command) => {
-            convert_commands(command);
-        }
+        Commands::Convert { args } => convert_commands(args),
 
         _ => tasks_commands(cli.command),
     }

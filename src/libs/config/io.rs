@@ -1,11 +1,10 @@
 use std::path::PathBuf;
 use std::{io, process};
 
+use crate::libs::config::Config;
+use crate::libs::storage::{export_file, import_file};
 use colored::Colorize;
 use serde_any::Format;
-
-use crate::config::Config;
-use crate::storage::{export_file, import_file};
 
 const CONFIG_FILE_NAME: &str = "todo.config";
 
