@@ -68,6 +68,15 @@ pub enum ConfigCommands {
     },
 }
 
+/// `config_commands` is a convenience function for configuring the config file.
+///
+/// Refer to the `ConfigCommands` struct for more information about parameters.
+///
+/// # Example
+///
+/// ```
+/// config_commands(ConfigCommands::DataPath { path: Some(PathBuf::from("data")) });
+/// ```
 fn config_commands(command: ConfigCommands) {
     let mut config = config::io::load();
 
@@ -81,6 +90,15 @@ fn config_commands(command: ConfigCommands) {
     config::io::save(&config)
 }
 
+/// `tasks_commands` is a convenience function for managing tasks.
+/// Refer to the `Commands` struct for more information about parameters.
+/// To specific functionality refer to the `Tasks` struct.
+///
+/// # Example
+///
+/// ```
+/// tasks_commands(Commands::List { short: false });
+/// ```
 fn tasks_commands(commands: Commands) {
     let config = config::io::load();
     let mut tasks = tasks::io::load(&config.get_data_path());
@@ -116,6 +134,11 @@ fn tasks_commands(commands: Commands) {
     tasks::io::save(&tasks, &config.get_data_path());
 }
 
+/// `main` is the entry point of the program.
+/// It parses the CLI arguments and calls the appropriate functions.
+/// Refer to the `Cli` struct for more information about parameters.
+///
+/// To specific functionality refer to the `tasks_commands` and `config_commands` and `convert_commands` functions.
 pub fn main() {
     let cli = Cli::parse();
 

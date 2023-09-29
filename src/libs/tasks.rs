@@ -17,15 +17,20 @@ macro_rules! feedback {
     };
 }
 
+/// A module to handle the tasks of the application.
+/// It contains functions to add, modify, remove, toggle and list tasks.
 #[derive(Deserialize, Serialize, Debug, Default, Clone)]
 pub struct Tasks {
     tasks: RefCell<HashMap<usize, Task>>,
 }
 
+/// `FirstAvailableKey` is a trait to get the first available key in a HashMap.
+/// It is used to get the first available index in the tasks HashMap.
 trait FirstAvailableKey {
     fn available_index(&self) -> usize;
 }
 
+/// `FirstAvailableKey` is an implementation of the trait `FirstAvailableKey` for HashMap of `HashMap<usize, Task>`.
 impl FirstAvailableKey for HashMap<usize, Task> {
     fn available_index(&self) -> usize {
         let mut index = 0;
@@ -38,13 +43,16 @@ impl FirstAvailableKey for HashMap<usize, Task> {
     }
 }
 
+/// `Tasks` is an implementation of the tasks.
 impl Tasks {
+    /// `new` creates a new instance of `Tasks`.
     pub fn new() -> Tasks {
         Tasks {
             tasks: RefCell::new(HashMap::new()),
         }
     }
 
+    /// `add` adds a new task to the tasks.
     pub fn add(&self, name: &str, description: &Option<String>) -> () {
         let description = match description {
             Some(desc) => desc,
@@ -84,6 +92,7 @@ impl Tasks {
     //     feedback!(borrow, index);
     // }
 
+    /// `remove` removes a task from the tasks.
     pub fn remove(&self, index: usize) -> () {
         self.valid_index(index);
 
@@ -94,6 +103,7 @@ impl Tasks {
         self.tasks.borrow_mut().remove_entry(&index);
     }
 
+    /// `toggle_completed` toggles the completed status of a task.
     pub fn toggle_completed(&self, index: usize) -> () {
         self.valid_index(index);
 
@@ -104,6 +114,7 @@ impl Tasks {
         );
     }
 
+    /// `list_long` lists the tasks in a long format.
     pub fn list_long(&self) -> () {
         for (number, task) in self.tasks.borrow().iter().enumerate() {
             println!("TASK NUMBER : {number}");
@@ -111,16 +122,19 @@ impl Tasks {
         }
     }
 
+    /// `list_short` lists the tasks in a short format.
     pub fn list_short(&self) -> () {
         for (number, task) in self.tasks.borrow().iter().enumerate() {
             println!("Task : {number} - {}", task.1.to_string_short());
         }
     }
 
+    /// `len` returns the length of the tasks.
     pub fn len(&self) -> usize {
         self.tasks.borrow().len()
     }
 
+    /// `valid_index` validates the index of a task.
     fn valid_index(&self, index: usize) -> () {
         if !self.tasks.borrow().contains_key(&index) {
             println!("{} : Not found.", "ERROR".red());

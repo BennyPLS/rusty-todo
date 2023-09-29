@@ -117,6 +117,20 @@ pub struct ConvertCommand {
     path: PathBuf,
 }
 
+/// `convert_commands` is a convenience function for converting formats using different actions and paths.
+///
+/// Refer to the `ConvertCommand` struct for more information about parameters.
+/// To specific functionality refer to the `convert!` macro.
+///
+/// # Example
+///
+/// ```
+/// convert_commands(ConvertCommand {
+///    action: ConvertAction::Import,
+///   format: Formats::JSON,
+///  path: PathBuf::from("tasks.json"),
+/// });
+/// ```
 pub(crate) fn convert_commands(
     ConvertCommand {
         action,

@@ -8,6 +8,9 @@ use serde_any::Format;
 
 const CONFIG_FILE_NAME: &str = "todo.config";
 
+/// A module to handle the configuration of the application.
+
+/// `default_config_path` returns the default config path.
 pub(crate) fn default_config_path() -> PathBuf {
     match dirs::config_dir() {
         Some(mut path) => {
@@ -22,6 +25,7 @@ pub(crate) fn default_config_path() -> PathBuf {
     }
 }
 
+/// `save` saves the configuration to the default config path.
 pub fn save(config: &Config) {
     if let Err(err) = export_file(config, Format::Toml, &default_config_path()) {
         eprintln!("{} : Config file, {}", "ERROR".red(), err.to_string());
@@ -29,6 +33,7 @@ pub fn save(config: &Config) {
     }
 }
 
+/// `load` loads the configuration from the default config path.
 pub fn load() -> Config {
     let result: io::Result<Config> = import_file(&default_config_path(), Format::Toml);
 
