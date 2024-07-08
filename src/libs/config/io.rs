@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::{io, process};
 
 use crate::libs::config::Config;
-use crate::libs::storage::{export_file, import_file};
+use crate::libs::storage::{export_file, import_file_or_create};
 use colored::Colorize;
 use serde_any::Format;
 
@@ -28,19 +28,19 @@ pub(crate) fn default_config_path() -> PathBuf {
 /// `save` saves the configuration to the default config path.
 pub fn save(config: &Config) {
     if let Err(err) = export_file(config, Format::Toml, &default_config_path()) {
-        eprintln!("{} : Config file, {}", "ERROR".red(), err.to_string());
+        eprintln!("{} : Config file, {}", "ERROR".red(), err);
         process::exit(exitcode::IOERR);
     }
 }
 
 /// `load` loads the configuration from the default config path.
 pub fn load() -> Config {
-    let result: io::Result<Config> = import_file(&default_config_path(), Format::Toml);
+    let result: io::Result<Config> = import_file_or_create(&default_config_path(), Format::Toml);
 
     match result {
         Ok(data) => data.validate(),
         Err(err) => {
-            eprintln!("{} : Config file, {}", "ERROR".red(), err.to_string());
+            eprintln!("{} : Config file, {}", "ERROR".red(), err);
             process::exit(exitcode::IOERR);
         }
     }

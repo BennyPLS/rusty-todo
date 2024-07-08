@@ -142,7 +142,7 @@ fn tasks_commands(commands: Commands) {
 pub fn main() {
     let cli = Cli::parse();
 
-    print!("{} ", "TODO".green());
+    println!("{} ", "TODO".green());
 
     match cli.command {
         Commands::Config(command) => {

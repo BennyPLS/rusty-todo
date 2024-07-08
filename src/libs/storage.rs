@@ -1,11 +1,10 @@
+use colored::Colorize;
+use serde::{Deserialize, Serialize};
+use serde_any::Format;
 use std::fs::File;
 use std::io::{ErrorKind, Read, Write};
 use std::path::PathBuf;
 use std::{io, process};
-
-use colored::Colorize;
-use serde::{Deserialize, Serialize};
-use serde_any::Format;
 
 /// A module to handle the storage of tasks
 /// in the default config format (TOML).
@@ -27,9 +26,9 @@ use serde_any::Format;
 ///
 /// let file = create(&path);
 /// ```
-pub fn create(path: &PathBuf) -> File {
+pub fn create(path: &PathBuf) -> io::Result<File> {
     match File::create(&path) {
-        Ok(fs) => fs,
+        Ok(fs) => Ok(fs),
         Err(error) => match error.kind() {
             ErrorKind::PermissionDenied => {
                 eprintln!(
@@ -39,16 +38,7 @@ pub fn create(path: &PathBuf) -> File {
                 );
                 process::exit(exitcode::IOERR);
             }
-
-            _ => {
-                eprintln!(
-                    "{} : Could not create {:?} file, {}.",
-                    "ERROR".red(),
-                    &path.to_str().unwrap_or("{unknown route}"),
-                    error.kind()
-                );
-                process::exit(exitcode::IOERR);
-            }
+            _ => return Err(error),
         },
     }
 }
@@ -56,9 +46,9 @@ pub fn create(path: &PathBuf) -> File {
 /// `open` opens a file in the given path.
 /// If the file does not exist, the program will exit.
 /// If the file cannot be opened, the program will exit.
-pub(crate) fn open(path: &PathBuf) -> File {
+pub(crate) fn open(path: &PathBuf) -> io::Result<File> {
     match File::open(&path) {
-        Ok(fs) => fs,
+        Ok(fs) => Ok(fs),
         Err(error) => match error.kind() {
             ErrorKind::PermissionDenied => {
                 eprintln!(
@@ -68,16 +58,7 @@ pub(crate) fn open(path: &PathBuf) -> File {
                 );
                 process::exit(exitcode::IOERR);
             }
-
-            _ => {
-                eprintln!(
-                    "{} : Could not open {:?} file, {}.",
-                    "ERROR".red(),
-                    &path.to_str().unwrap_or("{unknown route}"),
-                    error.kind()
-                );
-                process::exit(exitcode::IOERR);
-            }
+            _ => return Err(error),
         },
     }
 }
@@ -87,7 +68,7 @@ pub(crate) fn open(path: &PathBuf) -> File {
 /// If the file does not exist, it will be created.
 /// If the file cannot be created, the program will exit.
 pub(crate) fn raw_save(data: &str, path: &PathBuf) -> io::Result<()> {
-    let mut file = create(path);
+    let mut file = create(path)?;
     file.write_all(data.as_bytes())?;
 
     Ok(())
@@ -97,7 +78,7 @@ pub(crate) fn raw_save(data: &str, path: &PathBuf) -> io::Result<()> {
 /// If the file does not exist, the program will exit.
 pub(crate) fn load_raw(path: &PathBuf) -> io::Result<String> {
     let mut contents = String::new();
-    let mut file = open(path);
+    let mut file = open(path)?;
 
     file.read_to_string(&mut contents)?;
 
@@ -112,7 +93,7 @@ pub(crate) fn load_raw_or_create(path: &PathBuf) -> io::Result<String> {
         Ok(content) => Ok(content),
         Err(err) => {
             if err.kind() == ErrorKind::NotFound {
-                create(&path);
+                create(path)?;
                 Ok(String::new())
             } else {
                 Err(err)
@@ -123,10 +104,7 @@ pub(crate) fn load_raw_or_create(path: &PathBuf) -> io::Result<String> {
 
 /// `import` imports a string from a given format to a struct.
 /// If the string cannot be deserialized, the program will exit.
-pub fn import<T>(data: &str, format: Format) -> T
-where
-    T: for<'de> Deserialize<'de>,
-{
+pub fn import<T: for<'de> Deserialize<'de>>(data: &str, format: Format) -> T {
     match serde_any::from_str(data, format) {
         Ok(obj) => obj,
         Err(err) => {
@@ -138,14 +116,11 @@ where
 
 /// `export` exports a given object to a given format.
 /// If the object cannot be serialized, the program will exit.
-pub fn export<T>(data: &T, format: Format) -> String
-where
-    T: Serialize,
-{
+pub fn export<T: Serialize>(data: &T, format: Format) -> String {
     match serde_any::to_string(data, format) {
         Ok(serialized) => serialized,
         Err(err) => {
-            eprintln!("{} : Serializing, {}", "ERROR".red(), err.to_string());
+            eprintln!("{} : Serializing, {}", "ERROR".red(), err);
             process::exit(exitcode::DATAERR);
         }
     }
@@ -153,10 +128,7 @@ where
 
 /// `import_file` imports a file from a given format to a struct.
 /// If the file cannot be deserialized, the program will exit.
-pub fn import_file<T>(path: &PathBuf, format: Format) -> io::Result<T>
-where
-    T: for<'de> Deserialize<'de>,
-{
+pub fn import_file<T: for<'de> Deserialize<'de>>(path: &PathBuf, format: Format) -> io::Result<T> {
     let data = load_raw(path)?;
     Ok(import(&data, format))
 }
@@ -164,13 +136,11 @@ where
 /// `import_file_or_create` imports a file from a given format to a struct.
 /// If the file does not exist, it will be created.
 /// If the file cannot be deserialized, the program will exit.
-pub fn import_file_or_create<T>(path: &PathBuf, format: Format) -> io::Result<T>
-where
-    T: for<'de> Deserialize<'de> + Default,
-{
+pub fn import_file_or_create<T: for<'de> Deserialize<'de> + Default>(
+    path: &PathBuf,
+    format: Format,
+) -> io::Result<T> {
     let data = load_raw_or_create(path)?;
-
-    dbg!(&data);
 
     if data.is_empty() {
         return Ok(T::default());
@@ -182,10 +152,7 @@ where
 /// `export_file` exports a given object to a given format.
 /// If the object cannot be serialized, the program will exit.
 /// If the file cannot be created, the program will exit.
-pub fn export_file<T>(data: &T, format: Format, path: &PathBuf) -> io::Result<()>
-where
-    T: Serialize,
-{
+pub fn export_file<T: Serialize>(data: &T, format: Format, path: &PathBuf) -> io::Result<()> {
     let data = export(data, format);
     raw_save(&data, path)
 }

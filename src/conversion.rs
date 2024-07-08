@@ -2,7 +2,7 @@
 
 use clap::{Args, ValueEnum};
 use colored::Colorize;
-use serde_any::format::Format::{Json, Toml, Xml, Yaml};
+use serde_any::format::Format::{Json, Toml, Yaml};
 use std::path::PathBuf;
 use todo::libs::config;
 
@@ -91,8 +91,6 @@ pub enum Formats {
     JSON,
     /// Convert from TOML to YAML
     YAML,
-    /// Convert from TOML to XML
-    XML,
     /// Convert from TOML to TOML
     TOML,
 }
@@ -149,9 +147,6 @@ pub(crate) fn convert_commands(
         }
         Formats::YAML => {
             convert!(action, config.get_data_path(), path, Yaml)
-        }
-        Formats::XML => {
-            convert!(action, config.get_data_path(), path, Xml)
         }
     };
 
